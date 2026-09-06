@@ -80,15 +80,15 @@ function OffersPage() {
       image:
         "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?auto=format&fit=crop&w=800&q=80"
     },
-    {
-      id: 108,
-      title: "Smart LED Bulb",
-      category: "Home & Living",
-      price: 419,
-      originalPrice: 599,
-      image:
-        "https://images.unsplash.com/photo-1550985543-f47d1f5e8e4c?auto=format&fit=crop&w=800&q=80"
-    }
+     {
+  id: 109,
+  title: "Mechanical Gaming Keyboard",
+  category: "Electronics",
+  price: 1399,
+  originalPrice: 1999,
+  image:
+    "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=800&q=80",
+},
   ];
 
   const handleAddToCart = (product) => {
