@@ -7859,3 +7859,169 @@ body.dark-mode .back-cart-btn:hover {
   }
 
 }
+
+/* ==========================================
+   DESKTOP ACTIVE NAVBAR
+========================================== */
+
+.nav-links a {
+  position: relative;
+  transition: color 0.25s ease;
+}
+
+
+.nav-links a.active {
+  color: #6c4df6;
+  font-weight: 700;
+}
+
+
+.nav-links a.active::after {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  right: 0;
+
+  bottom: -8px;
+
+  height: 3px;
+
+  border-radius: 10px;
+
+  background: #6c4df6;
+}
+
+
+/* ==========================================
+   DARK MODE ACTIVE
+========================================== */
+
+body.dark-mode .nav-links a.active {
+  color: #9b87ff;
+}
+
+
+body.dark-mode .nav-links a.active::after {
+  background: #9b87ff;
+}
+
+
+/* ==========================================
+   MOBILE ACTIVE
+========================================== */
+
+.mobile-menu a.active {
+  background: rgba(108, 77, 246, 0.10);
+  color: #6c4df6;
+  font-weight: 700;
+
+  border-left: 4px solid #6c4df6;
+}
+
+
+body.dark-mode .mobile-menu a.active {
+  background: rgba(155, 135, 255, 0.12);
+  color: #9b87ff;
+  border-left-color: #9b87ff;
+}
+
+/* ==========================================
+   ACTIVE NAVBAR
+========================================== */
+
+.nav-links a {
+  position: relative;
+  transition: color 0.25s ease;
+}
+
+.nav-links a.active {
+  color: #6c4df6;
+  font-weight: 700;
+}
+
+.nav-links a.active::after {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  right: 0;
+
+  bottom: -8px;
+
+  height: 3px;
+
+  border-radius: 10px;
+
+  background: #6c4df6;
+}
+
+
+/* ==========================================
+   OFFERS ACTIVE
+========================================== */
+
+.nav-links a.offers-link.active {
+  color: #e53935;
+}
+
+.nav-links a.offers-link.active::after {
+  background: #e53935;
+}
+
+
+/* ==========================================
+   MOBILE ACTIVE
+========================================== */
+
+.mobile-menu a.active {
+  background: rgba(108, 77, 246, 0.10);
+
+  color: #6c4df6;
+
+  font-weight: 700;
+
+  border-left: 4px solid #6c4df6;
+}
+
+
+/* MOBILE OFFERS */
+
+.mobile-menu a.offers-mobile-link.active {
+  color: #e53935;
+  border-left-color: #e53935;
+}
+
+
+/* ==========================================
+   DARK MODE
+========================================== */
+
+body.dark-mode .nav-links a.active {
+  color: #9b87ff;
+}
+
+body.dark-mode .nav-links a.active::after {
+  background: #9b87ff;
+}
+
+body.dark-mode .nav-links a.offers-link.active {
+  color: #ff6b6b;
+}
+
+body.dark-mode .nav-links a.offers-link.active::after {
+  background: #ff6b6b;
+}
+
+body.dark-mode .mobile-menu a.active {
+  background: rgba(155, 135, 255, 0.12);
+  color: #9b87ff;
+  border-left-color: #9b87ff;
+}
+
+body.dark-mode .mobile-menu a.offers-mobile-link.active {
+  color: #ff6b6b;
+  border-left-color: #ff6b6b;
+}
