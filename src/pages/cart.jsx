@@ -1,137 +1,219 @@
 import { useEffect } from "react";
-
-import {
-  Link,
-  useNavigate
-} from "react-router-dom";
-
-import { useCart } from "../context/CartContext";
-
-import { useAuth } from "../context/AuthContext";
+import { Link, useNavigate } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+
+import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 
 
 function Cart() {
 
   const navigate = useNavigate();
 
-
   const {
     cart,
     increaseQuantity,
     decreaseQuantity,
     removeFromCart,
+    cartCount,
     cartTotal
   } = useCart();
-
 
   const {
     isLoggedIn
   } = useAuth();
 
 
-  // ==============================
-  // PROTECT CART PAGE
-  // ==============================
+  /* ========================================
+     LOGIN PROTECTION
+  ======================================== */
 
   useEffect(() => {
 
     if (!isLoggedIn) {
-
       navigate("/login");
-
     }
 
   }, [isLoggedIn, navigate]);
 
 
+  /* ========================================
+     CHECK OFFER PRODUCTS
+  ======================================== */
+
+  const hasOfferProduct = cart.some(
+    (item) => item.originalPrice
+  );
+
+
+  /* ========================================
+     ORIGINAL PRICE
+     
+     Offer product:
+     originalPrice
+
+     Normal product:
+     price
+  ======================================== */
+
+  const originalPriceTotal = cart.reduce(
+    (total, item) => {
+
+      const price =
+        item.originalPrice || item.price;
+
+      return (
+        total +
+        price * item.quantity
+      );
+
+    },
+    0
+  );
+
+
+  /* ========================================
+     DISCOUNT AMOUNT
+     
+     Only Offer products
+  ======================================== */
+
+  const offerDiscount = cart.reduce(
+    (total, item) => {
+
+      if (!item.originalPrice) {
+        return total;
+      }
+
+      const discountPerItem =
+        item.originalPrice - item.price;
+
+      return (
+        total +
+        discountPerItem * item.quantity
+      );
+
+    },
+    0
+  );
+
+
+  /* ========================================
+     DISCOUNT PERCENTAGE
+  ======================================== */
+
+  const discountPercentage =
+    originalPriceTotal > 0
+      ? Math.round(
+          (offerDiscount /
+            originalPriceTotal) *
+            100
+        )
+      : 0;
+
+
+  /* ========================================
+     SHIPPING
+  ======================================== */
+
   const shipping =
-    cartTotal >= 999 ? 0 : 99;
+    cartTotal >= 999
+      ? 0
+      : 99;
 
 
-  const discount =
-    cartTotal >= 2000 ? 200 : 0;
+  /* ========================================
+     NORMAL CART DISCOUNT
+     
+     Keep existing ₹200 discount
+     for normal products only.
+  ======================================== */
 
+  const normalDiscount =
+    !hasOfferProduct &&
+    cartTotal >= 2000
+      ? 200
+      : 0;
+
+
+  /* ========================================
+     FINAL TOTAL
+  ======================================== */
 
   const finalTotal =
-    cartTotal + shipping - discount;
+    cartTotal +
+    shipping -
+    normalDiscount;
 
 
-  // ==============================
-  // NOT LOGGED IN
-  // ==============================
-
-  if (!isLoggedIn) {
-
-    return null;
-
-  }
-
-
-  // ==============================
-  // EMPTY CART
-  // ==============================
+  /* ========================================
+     EMPTY CART
+  ======================================== */
 
   if (cart.length === 0) {
 
     return (
 
-      <>
+      <div className="app">
 
         <Navbar />
 
-        <div className="empty-cart-page">
+        <main className="cart-page">
 
-          <div className="empty-cart-icon">
-            🛒
+          <div className="empty-cart-page">
+
+            <div className="empty-cart-icon">
+              🛒
+            </div>
+
+            <h1>
+              Your Cart is Empty
+            </h1>
+
+            <p>
+              Looks like you haven't added
+              anything to your cart yet.
+            </p>
+
+            <Link
+              to="/products"
+              className="continue-btn"
+            >
+              Start Shopping →
+            </Link>
+
           </div>
 
+        </main>
 
-          <h1>
-            Your Cart is Empty
-          </h1>
+        <Footer />
 
-
-          <p>
-            Looks like you haven't added
-            anything to your cart yet.
-          </p>
-
-
-          <Link
-            to="/products"
-            className="continue-btn"
-          >
-            Start Shopping →
-          </Link>
-
-        </div>
-
-      </>
+      </div>
 
     );
 
   }
 
 
-  // ==============================
-  // CART PAGE
-  // ==============================
+  /* ========================================
+     MAIN CART
+  ======================================== */
 
   return (
 
-    <>
-
-      {/* NAVBAR */}
+    <div className="app">
 
       <Navbar />
 
 
-      <div className="cart-page">
+      <main className="cart-page">
 
 
-        {/* HEADER */}
+        {/* ==================================
+            CART HEADER
+        ================================== */}
 
         <div className="cart-header">
 
@@ -141,16 +223,16 @@ function Cart() {
               YOUR SHOPPING BAG
             </p>
 
-
             <h1>
               Shopping Cart
             </h1>
 
-
             <p>
-              {cart.length} product
-              {cart.length > 1 ? "s" : ""}
-              {" "}in your cart
+              {cartCount}{" "}
+              {cartCount === 1
+                ? "product"
+                : "products"}{" "}
+              in your cart
             </p>
 
           </div>
@@ -166,162 +248,293 @@ function Cart() {
         </div>
 
 
-        {/* CART LAYOUT */}
+        {/* ==================================
+            CART LAYOUT
+        ================================== */}
 
         <div className="cart-layout">
 
 
-          {/* CART PRODUCTS */}
+          {/* ==================================
+              CART PRODUCTS
+          ================================== */}
 
-          <div className="cart-products">
+          <section className="cart-products">
 
-            {cart.map((item) => (
+            {cart.map((item) => {
 
-              <div
-                className="cart-product"
-                key={item.id}
-              >
-
-
-                {/* IMAGE */}
-
-                <div className="cart-product-image">
-
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                  />
-
-                </div>
+              const isOffer =
+                !!item.originalPrice;
 
 
-                {/* DETAILS */}
+              return (
 
-                <div className="cart-product-details">
-
-                  <p className="cart-category">
-                    {item.category}
-                  </p>
-
-
-                  <h3>
-                    {item.title}
-                  </h3>
+                <div
+                  className="cart-product"
+                  key={item.id}
+                >
 
 
-                  <p className="cart-price">
-                    ₹
-                    {item.price.toLocaleString(
-                      "en-IN"
+                  {/* PRODUCT IMAGE */}
+
+                  <Link
+                    to={`/product/${item.id}`}
+                    className="cart-product-image"
+                  >
+
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                    />
+
+                  </Link>
+
+
+                  {/* PRODUCT DETAILS */}
+
+                  <div className="cart-product-details">
+
+                    <p className="cart-category">
+                      {item.category}
+                    </p>
+
+
+                    <h3>
+                      {item.title}
+                    </h3>
+
+
+                    {/* ==========================
+                        OFFER PRODUCT PRICE
+                    ========================== */}
+
+                    {isOffer ? (
+
+                      <div className="cart-deal-price">
+
+                        <span className="cart-original-price">
+                          ₹
+                          {item.originalPrice.toLocaleString(
+                            "en-IN"
+                          )}
+                        </span>
+
+                        <span className="cart-sale-price">
+                          ₹
+                          {item.price.toLocaleString(
+                            "en-IN"
+                          )}
+                        </span>
+
+                      </div>
+
+                    ) : (
+
+                      /* NORMAL PRODUCT */
+
+                      <p className="cart-price">
+
+                        ₹
+                        {item.price.toLocaleString(
+                          "en-IN"
+                        )}
+
+                      </p>
+
                     )}
-                  </p>
 
 
-                  {/* QUANTITY + REMOVE */}
+                    {/* QUANTITY + REMOVE */}
 
-                  <div className="cart-bottom">
+                    <div className="cart-bottom">
 
-                    <div className="quantity-box">
+
+                      <div className="quantity-box">
+
+                        <button
+                          onClick={() =>
+                            decreaseQuantity(
+                              item.id
+                            )
+                          }
+                        >
+                          −
+                        </button>
+
+
+                        <span>
+                          {item.quantity}
+                        </span>
+
+
+                        <button
+                          onClick={() =>
+                            increaseQuantity(
+                              item.id
+                            )
+                          }
+                        >
+                          +
+                        </button>
+
+                      </div>
+
 
                       <button
+                        className="remove-product"
                         onClick={() =>
-                          decreaseQuantity(item.id)
+                          removeFromCart(
+                            item.id
+                          )
                         }
                       >
-                        −
-                      </button>
-
-
-                      <span>
-                        {item.quantity}
-                      </span>
-
-
-                      <button
-                        onClick={() =>
-                          increaseQuantity(item.id)
-                        }
-                      >
-                        +
+                        🗑 Remove
                       </button>
 
                     </div>
 
+                  </div>
 
-                    <button
-                      className="remove-product"
-                      onClick={() =>
-                        removeFromCart(item.id)
-                      }
-                    >
-                      🗑 Remove
-                    </button>
+
+                  {/* ITEM TOTAL */}
+
+                  <div className="item-total">
+
+                    <span>
+                      Item Total
+                    </span>
+
+                    <strong>
+                      ₹
+                      {(
+                        item.price *
+                        item.quantity
+                      ).toLocaleString(
+                        "en-IN"
+                      )}
+                    </strong>
 
                   </div>
 
-                </div>
-
-
-                {/* ITEM TOTAL */}
-
-                <div className="item-total">
-
-                  <span>
-                    Item Total
-                  </span>
-
-
-                  <strong>
-                    ₹
-                    {(
-                      item.price *
-                      item.quantity
-                    ).toLocaleString(
-                      "en-IN"
-                    )}
-                  </strong>
 
                 </div>
 
-              </div>
+              );
 
-            ))}
+            })}
 
-          </div>
+          </section>
 
 
-          {/* ORDER SUMMARY */}
+          {/* ==================================
+              ORDER SUMMARY
+          ================================== */}
 
-          <div className="order-summary">
+          <aside className="order-summary">
 
             <h2>
               Order Summary
             </h2>
 
 
-            <div className="summary-line">
+            {/* ==================================
+                OFFER PRODUCT SUMMARY
+            ================================== */}
 
-              <span>
-                Subtotal
-              </span>
+            {hasOfferProduct ? (
+
+              <>
 
 
-              <span>
-                ₹
-                {cartTotal.toLocaleString(
-                  "en-IN"
-                )}
-              </span>
+                {/* ORIGINAL PRICE */}
 
-            </div>
+                <div className="summary-line">
 
+                  <span>
+                    Original Price
+                  </span>
+
+                  <span>
+                    ₹
+                    {originalPriceTotal.toLocaleString(
+                      "en-IN"
+                    )}
+                  </span>
+
+                </div>
+
+
+                {/* DISCOUNT */}
+
+                <div className="summary-line discount">
+
+                  <span>
+                    Discount ({discountPercentage}%)
+                  </span>
+
+                  <span>
+                    -₹
+                    {offerDiscount.toLocaleString(
+                      "en-IN"
+                    )}
+                  </span>
+
+                </div>
+
+
+                {/* DISCOUNT PRICE */}
+
+                <div className="summary-line">
+
+                  <span>
+                    Discount Price
+                  </span>
+
+                  <span>
+                    ₹
+                    {cartTotal.toLocaleString(
+                      "en-IN"
+                    )}
+                  </span>
+
+                </div>
+
+
+              </>
+
+            ) : (
+
+              /* ==================================
+                 NORMAL PRODUCT
+              ================================== */
+
+              <div className="summary-line">
+
+                <span>
+                  Subtotal
+                </span>
+
+                <span>
+                  ₹
+                  {cartTotal.toLocaleString(
+                    "en-IN"
+                  )}
+                </span>
+
+              </div>
+
+            )}
+
+
+            {/* ==================================
+                SHIPPING
+            ================================== */}
 
             <div className="summary-line">
 
               <span>
                 Shipping
               </span>
-
 
               <span>
                 {shipping === 0
@@ -332,17 +545,23 @@ function Cart() {
             </div>
 
 
-            {discount > 0 && (
+            {/* ==================================
+                NORMAL ₹200 DISCOUNT
+            ================================== */}
+
+            {normalDiscount > 0 && (
 
               <div className="summary-line discount">
 
                 <span>
-                  Discount
+                  Extra Discount
                 </span>
 
-
                 <span>
-                  -₹{discount}
+                  -₹
+                  {normalDiscount.toLocaleString(
+                    "en-IN"
+                  )}
                 </span>
 
               </div>
@@ -350,15 +569,20 @@ function Cart() {
             )}
 
 
+            {/* DIVIDER */}
+
             <div className="summary-divider"></div>
 
+
+            {/* ==================================
+                TOTAL
+            ================================== */}
 
             <div className="summary-total">
 
               <span>
                 Total
               </span>
-
 
               <strong>
                 ₹
@@ -370,6 +594,8 @@ function Cart() {
             </div>
 
 
+            {/* CHECKOUT */}
+
             <Link
               to="/checkout"
               className="checkout-btn"
@@ -378,30 +604,30 @@ function Cart() {
             </Link>
 
 
-            <div className="secure-checkout">
+            <p className="secure-checkout">
               🔒 Secure Checkout
-            </div>
+            </p>
 
-          </div>
+          </aside>
 
         </div>
 
 
-        {/* BENEFITS */}
+        {/* ==================================
+            CART BENEFITS
+        ================================== */}
 
         <div className="cart-benefits">
 
 
           <div>
 
-            🚚
-
             <strong>
-              Free Shipping
+              📦 Fast Delivery
             </strong>
 
             <span>
-              On orders above ₹999
+              Quick & reliable shipping
             </span>
 
           </div>
@@ -409,14 +635,12 @@ function Cart() {
 
           <div>
 
-            🔄
-
             <strong>
-              Easy Returns
+              🔄 Easy Returns
             </strong>
 
             <span>
-              7 days return policy
+              Hassle-free returns
             </span>
 
           </div>
@@ -424,10 +648,8 @@ function Cart() {
 
           <div>
 
-            🔒
-
             <strong>
-              Secure Payment
+              🔒 Secure Payment
             </strong>
 
             <span>
@@ -439,9 +661,12 @@ function Cart() {
 
         </div>
 
-      </div>
+      </main>
 
-    </>
+
+      <Footer />
+
+    </div>
 
   );
 

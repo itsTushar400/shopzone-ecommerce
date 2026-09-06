@@ -26,7 +26,7 @@ import WhyChooseUs from "./components/WhyChooseUs";
 import Testimonials from "./components/Testimonials";
 import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
-
+import OffersPage from "./pages/OffersPage";
 
 // ========================================
 // PRODUCT DATA
@@ -1133,7 +1133,7 @@ function App() {
 
           <WishlistProvider>
 
-            <BrowserRouter>
+            <BrowserRouter basename={import.meta.env.BASE_URL}>
 
               <Routes>
 
@@ -1220,6 +1220,15 @@ function App() {
                 />
 
 
+                {/* OFFERS */}
+                 <Route
+                  path="/offers"
+                  element={
+                  <OffersPage
+                  products={products}
+                  />
+                   }
+                  />
               </Routes>
 
             </BrowserRouter>

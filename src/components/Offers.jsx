@@ -1,9 +1,9 @@
+import { Link } from "react-router-dom";
+
 function Offers() {
   return (
     <section className="offers-section">
-
       <div className="offer-content">
-
         <p className="offer-label">
           🔥 LIMITED TIME OFFER
         </p>
@@ -13,19 +13,19 @@ function Offers() {
         </h2>
 
         <p>
-          Grab your favourite products before
-          the offer ends. Don't miss out!
+          Grab your favourite products before the offer
+          ends. Don't miss out!
         </p>
 
-        <button className="offer-btn">
+        <Link
+          to="/offers"
+          className="offer-btn"
+        >
           Shop Deals →
-        </button>
-
+        </Link>
       </div>
 
-
       <div className="offer-box">
-
         <div className="offer-circle">
           🛍️
         </div>
@@ -34,9 +34,7 @@ function Offers() {
           30%
           <small>OFF</small>
         </div>
-
       </div>
-
     </section>
   );
 }

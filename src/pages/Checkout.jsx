@@ -8,17 +8,15 @@ import {
   useNavigate
 } from "react-router-dom";
 
-import { useCart } from "../context/CartContext";
-
-import { useAuth } from "../context/AuthContext";
-
 import Navbar from "../components/Navbar";
+
+import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 
 
 function Checkout() {
 
   const navigate = useNavigate();
-
 
   const {
     cart,
@@ -26,12 +24,15 @@ function Checkout() {
     clearCart
   } = useCart();
 
-
   const {
     isLoggedIn,
     userEmail
   } = useAuth();
 
+
+  /* ========================================
+     FORM STATE
+  ======================================== */
 
   const [formData, setFormData] = useState({
     name: "",
@@ -55,9 +56,9 @@ function Checkout() {
     useState("");
 
 
-  // ==============================
-  // LOGIN PROTECTION
-  // ==============================
+  /* ========================================
+     LOGIN PROTECTION
+  ======================================== */
 
   useEffect(() => {
 
@@ -68,25 +69,118 @@ function Checkout() {
   }, [isLoggedIn, navigate]);
 
 
-  // ==============================
-  // PRICE CALCULATION
-  // ==============================
+  /* ========================================
+     CHECK OFFER PRODUCTS
+  ======================================== */
+
+  const hasOfferProduct = cart.some(
+    (item) => item.originalPrice
+  );
+
+
+  /* ========================================
+     ORIGINAL PRICE
+     
+     Offer product:
+     originalPrice
+
+     Normal product:
+     price
+  ======================================== */
+
+  const originalPriceTotal = cart.reduce(
+    (total, item) => {
+
+      const price =
+        item.originalPrice || item.price;
+
+      return (
+        total +
+        price * item.quantity
+      );
+
+    },
+    0
+  );
+
+
+  /* ========================================
+     OFFER DISCOUNT
+  ======================================== */
+
+  const offerDiscount = cart.reduce(
+    (total, item) => {
+
+      if (!item.originalPrice) {
+        return total;
+      }
+
+      const discountPerItem =
+        item.originalPrice - item.price;
+
+      return (
+        total +
+        discountPerItem * item.quantity
+      );
+
+    },
+    0
+  );
+
+
+  /* ========================================
+     DISCOUNT PERCENTAGE
+  ======================================== */
+
+  const discountPercentage =
+    originalPriceTotal > 0
+      ? Math.round(
+          (offerDiscount /
+            originalPriceTotal) *
+            100
+        )
+      : 0;
+
+
+  /* ========================================
+     SHIPPING
+  ======================================== */
 
   const shipping =
-    cartTotal >= 999 ? 0 : 99;
+    cartTotal >= 999
+      ? 0
+      : 99;
 
 
-  const discount =
-    cartTotal >= 2000 ? 200 : 0;
+  /* ========================================
+     NORMAL PRODUCT DISCOUNT
+     
+     ₹200 discount ONLY for normal products.
+     
+     If offer product exists,
+     don't apply another ₹200 discount.
+  ======================================== */
 
+  const normalDiscount =
+    !hasOfferProduct &&
+    cartTotal >= 2000
+      ? 200
+      : 0;
+
+
+  /* ========================================
+     FINAL TOTAL
+  ======================================== */
 
   const finalTotal =
-    cartTotal + shipping - discount;
+    cartTotal +
+    shipping -
+    normalDiscount;
 
 
-  // ==============================
-  // INPUT CHANGE
-  // ==============================
+  /* ========================================
+     HANDLE INPUT
+  ======================================== */
 
   const handleChange = (e) => {
 
@@ -96,72 +190,60 @@ function Checkout() {
     } = e.target;
 
 
-    // Phone number only
-    if (name === "phone") {
+    if (
+      name === "phone" ||
+      name === "pincode"
+    ) {
 
       const numbersOnly =
         value.replace(/\D/g, "");
 
-      setFormData((previousData) => ({
-        ...previousData,
-        phone: numbersOnly
-      }));
-
-      setError("");
+      setFormData(
+        (previous) => ({
+          ...previous,
+          [name]:
+            name === "phone"
+              ? numbersOnly.slice(0, 10)
+              : numbersOnly.slice(0, 6)
+        })
+      );
 
       return;
     }
 
 
-    // Pincode only
-    if (name === "pincode") {
-
-      const numbersOnly =
-        value.replace(/\D/g, "");
-
-      setFormData((previousData) => ({
-        ...previousData,
-        pincode: numbersOnly
-      }));
-
-      setError("");
-
-      return;
-    }
-
-
-    setFormData((previousData) => ({
-      ...previousData,
-      [name]: value
-    }));
-
-
-    setError("");
+    setFormData(
+      (previous) => ({
+        ...previous,
+        [name]: value
+      })
+    );
 
   };
 
 
-  // ==============================
-  // PLACE ORDER
-  // ==============================
+  /* ========================================
+     PLACE ORDER
+  ======================================== */
 
   const handleSubmit = (e) => {
 
     e.preventDefault();
 
-
     setError("");
 
 
-    // Check empty fields
+    /* ==============================
+       VALIDATION
+    ============================== */
 
     if (
-      !formData.name.trim() ||
-      !formData.phone.trim() ||
-      !formData.address.trim() ||
-      !formData.city.trim() ||
-      !formData.state.trim() ||
-      !formData.pincode.trim()
+      !formData.name ||
+      !formData.phone ||
+      !formData.address ||
+      !formData.city ||
+      !formData.state ||
+      !formData.pincode
     ) {
 
       setError(
@@ -172,8 +254,6 @@ function Checkout() {
     }
 
 
-    // Phone validation
-
     if (formData.phone.length !== 10) {
 
       setError(
@@ -183,8 +263,6 @@ function Checkout() {
       return;
     }
 
-
-    // Pincode validation
 
     if (formData.pincode.length !== 6) {
 
@@ -199,78 +277,89 @@ function Checkout() {
     setLoading(true);
 
 
-    // ==============================
-    // CREATE ORDER
-    // ==============================
+    /* ==================================
+       CREATE ORDER
+    ================================== */
 
     const order = {
 
       id:
-        "ORD-" +
-        Date.now(),
+        `ORD-${Date.now()}`,
 
       userEmail,
 
       customer: {
-        name: formData.name.trim(),
+        name: formData.name,
         phone: formData.phone,
-        address: formData.address.trim(),
-        city: formData.city.trim(),
-        state: formData.state.trim(),
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
         pincode: formData.pincode
       },
 
       items: cart,
 
-      subtotal: cartTotal,
+      /* Original product value */
+      originalPrice:
+        originalPriceTotal,
+
+      /* Offer discount */
+      discount:
+        hasOfferProduct
+          ? offerDiscount
+          : normalDiscount,
+
+      discountPercentage:
+        hasOfferProduct
+          ? discountPercentage
+          : 0,
+
+      /* Actual product price after offer */
+      subtotal:
+        cartTotal,
 
       shipping,
 
-      discount,
-
-      total: finalTotal,
+      total:
+        finalTotal,
 
       paymentMethod,
 
-      status: "Confirmed",
+      status:
+        "Confirmed",
 
       date:
-        new Date().toLocaleString("en-IN")
+        new Date().toISOString()
 
     };
 
 
-    // ==============================
-    // SAVE ORDER
-    // ==============================
+    /* ==================================
+       SAVE ORDER
+    ================================== */
 
-    const previousOrders =
+    const existingOrders =
       JSON.parse(
-        localStorage.getItem("orders")
-      ) || [];
-
-
-    const updatedOrders = [
-      ...previousOrders,
-      order
-    ];
+        localStorage.getItem("orders") || "[]"
+      );
 
 
     localStorage.setItem(
       "orders",
-      JSON.stringify(updatedOrders)
+      JSON.stringify([
+        ...existingOrders,
+        order
+      ])
     );
 
 
-    // ==============================
-    // ORDER SUCCESS
-    // ==============================
+    /* ==================================
+       ORDER SUCCESS
+    ================================== */
 
     setTimeout(() => {
 
       clearCart();
-
-      setLoading(false);
 
       navigate("/order-success");
 
@@ -279,432 +368,96 @@ function Checkout() {
   };
 
 
-  // ==============================
-  // EMPTY CART
-  // ==============================
+  /* ========================================
+     EMPTY CART
+  ======================================== */
 
   if (cart.length === 0) {
 
     return (
 
-      <>
+      <div className="app">
 
         <Navbar />
 
+        <main className="checkout-page">
 
-        <div className="empty-cart-page">
+          <div className="empty-checkout">
 
-          <div className="empty-cart-icon">
-            🛒
+            <h1>
+              Your Cart is Empty
+            </h1>
+
+            <p>
+              Add some products before checkout.
+            </p>
+
+            <Link
+              to="/products"
+              className="continue-btn"
+            >
+              Start Shopping →
+            </Link>
+
           </div>
 
+        </main>
 
-          <h1>
-            Your Cart is Empty
-          </h1>
-
-
-          <p>
-            Add some products before
-            proceeding to checkout.
-          </p>
-
-
-          <Link
-            to="/products"
-            className="continue-btn"
-          >
-            Start Shopping →
-          </Link>
-
-        </div>
-
-      </>
+      </div>
 
     );
 
   }
 
 
-  // ==============================
-  // CHECKOUT PAGE
-  // ==============================
+  /* ========================================
+     CHECKOUT PAGE
+  ======================================== */
 
   return (
 
-    <>
+    <div className="app">
 
       <Navbar />
 
 
-      <div className="checkout-page">
+      <main className="checkout-page">
 
 
-        {/* HEADER */}
+        {/* ==================================
+            HEADER
+        ================================== */}
 
         <div className="checkout-header">
 
-          <p className="checkout-subtitle">
+          <p className="checkout-label">
             SECURE CHECKOUT
           </p>
-
 
           <h1>
             Complete Your Order
           </h1>
 
-
           <p>
-            Enter your delivery details
-            and choose a payment method.
+            Review your order and enter
+            your delivery details.
           </p>
 
         </div>
 
 
-        <div className="checkout-layout checkout-layout-vertical">
+        {/* ==================================
+            CHECKOUT LAYOUT
+        ================================== */}
 
+        <div className="checkout-layout">
 
-          {/* =================================
-              LEFT SIDE
-          ================================= */}
 
-          <div className="checkout-form-card checkout-form-full">
+          {/* ==================================
+              ORDER SUMMARY
+          ================================== */}
 
-            <form onSubmit={handleSubmit}>
-
-
-              {/* DELIVERY DETAILS */}
-
-              <div className="checkout-section">
-
-                <h2>
-                  📦 Delivery Details
-                </h2>
-
-
-                {/* ERROR */}
-
-                {error && (
-
-                  <div className="checkout-error">
-                    ⚠️ {error}
-                  </div>
-
-                )}
-
-
-                <div className="checkout-grid">
-
-
-                  {/* NAME */}
-
-                  <div className="form-group">
-
-                    <label>
-                      Full Name
-                    </label>
-
-
-                    <input
-                      type="text"
-                      name="name"
-                      placeholder="Enter your full name"
-                      value={formData.name}
-                      onChange={handleChange}
-                    />
-
-                  </div>
-
-
-                  {/* PHONE */}
-
-                  <div className="form-group">
-
-                    <label>
-                      Phone Number
-                    </label>
-
-
-                    <input
-                      type="tel"
-                      name="phone"
-                      placeholder="10-digit mobile number"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      maxLength="10"
-                    />
-
-                  </div>
-
-
-                  {/* ADDRESS */}
-
-                  <div className="form-group full-width">
-
-                    <label>
-                      Address
-                    </label>
-
-
-                    <textarea
-                      name="address"
-                      placeholder="House no., street, area"
-                      value={formData.address}
-                      onChange={handleChange}
-                      rows="3"
-                    />
-
-                  </div>
-
-
-                  {/* CITY */}
-
-                  <div className="form-group">
-
-                    <label>
-                      City
-                    </label>
-
-
-                    <input
-                      type="text"
-                      name="city"
-                      placeholder="Enter city"
-                      value={formData.city}
-                      onChange={handleChange}
-                    />
-
-                  </div>
-
-
-                  {/* STATE */}
-
-                  <div className="form-group">
-
-                    <label>
-                      State
-                    </label>
-
-
-                    <input
-                      type="text"
-                      name="state"
-                      placeholder="Enter state"
-                      value={formData.state}
-                      onChange={handleChange}
-                    />
-
-                  </div>
-
-
-                  {/* PINCODE */}
-
-                  <div className="form-group">
-
-                    <label>
-                      Pincode
-                    </label>
-
-
-                    <input
-                      type="text"
-                      name="pincode"
-                      placeholder="6-digit pincode"
-                      value={formData.pincode}
-                      onChange={handleChange}
-                      maxLength="6"
-                    />
-
-                  </div>
-
-                </div>
-
-              </div>
-
-
-              {/* =================================
-                  PAYMENT
-              ================================= */}
-
-              <div className="checkout-section">
-
-                <h2>
-                  💳 Payment Method
-                </h2>
-
-
-                <div className="payment-options">
-
-
-                  {/* COD */}
-
-                  <label
-                    className={`payment-option ${
-                      paymentMethod === "cod"
-                        ? "selected"
-                        : ""
-                    }`}
-                  >
-
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="cod"
-                      checked={
-                        paymentMethod === "cod"
-                      }
-                      onChange={(e) =>
-                        setPaymentMethod(
-                          e.target.value
-                        )
-                      }
-                    />
-
-
-                    <div>
-
-                      <strong>
-                        Cash on Delivery
-                      </strong>
-
-
-                      <span>
-                        Pay when your order arrives
-                      </span>
-
-                    </div>
-
-                  </label>
-
-
-                  {/* UPI */}
-
-                  <label
-                    className={`payment-option ${
-                      paymentMethod === "upi"
-                        ? "selected"
-                        : ""
-                    }`}
-                  >
-
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="upi"
-                      checked={
-                        paymentMethod === "upi"
-                      }
-                      onChange={(e) =>
-                        setPaymentMethod(
-                          e.target.value
-                        )
-                      }
-                    />
-
-
-                    <div>
-
-                      <strong>
-                        UPI
-                      </strong>
-
-
-                      <span>
-                        Pay securely using UPI
-                      </span>
-
-                    </div>
-
-                  </label>
-
-
-                  {/* CARD */}
-
-                  <label
-                    className={`payment-option ${
-                      paymentMethod === "card"
-                        ? "selected"
-                        : ""
-                    }`}
-                  >
-
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="card"
-                      checked={
-                        paymentMethod === "card"
-                      }
-                      onChange={(e) =>
-                        setPaymentMethod(
-                          e.target.value
-                        )
-                      }
-                    />
-
-
-                    <div>
-
-                      <strong>
-                        Credit / Debit Card
-                      </strong>
-
-
-                      <span>
-                        Secure card payment
-                      </span>
-
-                    </div>
-
-                  </label>
-
-
-                </div>
-
-              </div>
-
-
-              {/* =================================
-                  PLACE ORDER
-              ================================= */}
-
-              <button
-                type="submit"
-                className="place-order-btn"
-                disabled={loading}
-              >
-
-                {loading
-                  ? "⏳ Placing Order..."
-                  : `Place Order • ₹${finalTotal.toLocaleString(
-                      "en-IN"
-                    )}`}
-
-              </button>
-
-
-              {/* BACK TO CART */}
-
-              <Link
-                to="/cart"
-                className="back-cart-link"
-              >
-                ← Back to Cart
-              </Link>
-
-
-            </form>
-
-          </div>
-
-
-          {/* =================================
-              RIGHT SIDE
-          ================================= */}
-
-          <div className="checkout-summary checkout-summary-full">
-
+          <section className="checkout-summary">
 
             <h2>
               Order Summary
@@ -713,12 +466,12 @@ function Checkout() {
 
             {/* PRODUCTS */}
 
-            <div className="checkout-products">
+            <div className="checkout-items">
 
               {cart.map((item) => (
 
                 <div
-                  className="checkout-product"
+                  className="checkout-item"
                   key={item.id}
                 >
 
@@ -728,16 +481,15 @@ function Checkout() {
                   />
 
 
-                  <div>
+                  <div className="checkout-item-info">
 
-                    <h3>
+                    <strong>
                       {item.title}
-                    </h3>
+                    </strong>
 
-
-                    <p>
+                    <span>
                       Qty: {item.quantity}
-                    </p>
+                    </span>
 
                   </div>
 
@@ -759,77 +511,142 @@ function Checkout() {
             </div>
 
 
-            <div className="summary-divider"></div>
+            {/* ==================================
+                PRICE DETAILS
+            ================================== */}
+
+            <div className="checkout-price-details">
 
 
-            {/* SUBTOTAL */}
+              {hasOfferProduct ? (
 
-            <div className="summary-line">
+                <>
 
-              <span>
-                Subtotal
-              </span>
+                  {/* ORIGINAL PRICE */}
 
+                  <div className="checkout-price-row">
 
-              <span>
-                ₹
-                {cartTotal.toLocaleString(
-                  "en-IN"
-                )}
-              </span>
+                    <span>
+                      Original Price
+                    </span>
 
-            </div>
+                    <span>
+                      ₹
+                      {originalPriceTotal.toLocaleString(
+                        "en-IN"
+                      )}
+                    </span>
 
-
-            {/* SHIPPING */}
-
-            <div className="summary-line">
-
-              <span>
-                Shipping
-              </span>
+                  </div>
 
 
-              <span>
-                {shipping === 0
-                  ? "FREE"
-                  : `₹${shipping}`}
-              </span>
+                  {/* DISCOUNT */}
 
-            </div>
+                  <div className="checkout-price-row checkout-discount">
+
+                    <span>
+                      Discount ({discountPercentage}%)
+                    </span>
+
+                    <span>
+                      -₹
+                      {offerDiscount.toLocaleString(
+                        "en-IN"
+                      )}
+                    </span>
+
+                  </div>
 
 
-            {/* DISCOUNT */}
+                  {/* DISCOUNT PRICE */}
 
-            {discount > 0 && (
+                  <div className="checkout-price-row">
 
-              <div className="summary-line discount">
+                    <span>
+                      Discount Price
+                    </span>
+
+                    <span>
+                      ₹
+                      {cartTotal.toLocaleString(
+                        "en-IN"
+                      )}
+                    </span>
+
+                  </div>
+
+                </>
+
+              ) : (
+
+                /* NORMAL PRODUCTS */
+
+                <div className="checkout-price-row">
+
+                  <span>
+                    Subtotal
+                  </span>
+
+                  <span>
+                    ₹
+                    {cartTotal.toLocaleString(
+                      "en-IN"
+                    )}
+                  </span>
+
+                </div>
+
+              )}
+
+
+              {/* SHIPPING */}
+
+              <div className="checkout-price-row">
 
                 <span>
-                  Discount
+                  Shipping
                 </span>
 
-
                 <span>
-                  -₹{discount}
+                  {shipping === 0
+                    ? "FREE"
+                    : `₹${shipping}`}
                 </span>
 
               </div>
 
-            )}
 
+              {/* NORMAL ₹200 DISCOUNT */}
 
-            <div className="summary-divider"></div>
+              {normalDiscount > 0 && (
+
+                <div className="checkout-price-row checkout-discount">
+
+                  <span>
+                    Extra Discount
+                  </span>
+
+                  <span>
+                    -₹
+                    {normalDiscount.toLocaleString(
+                      "en-IN"
+                    )}
+                  </span>
+
+                </div>
+
+              )}
+
+            </div>
 
 
             {/* TOTAL */}
 
-            <div className="summary-total">
+            <div className="checkout-total">
 
               <span>
                 Total
               </span>
-
 
               <strong>
                 ₹
@@ -841,17 +658,261 @@ function Checkout() {
             </div>
 
 
-            <div className="secure-checkout">
+            <p className="checkout-secure">
               🔒 Your information is secure
-            </div>
+            </p>
 
-          </div>
+          </section>
+
+
+          {/* ==================================
+              DELIVERY + PAYMENT
+          ================================== */}
+
+          <section className="checkout-form-card">
+
+            <form
+              onSubmit={handleSubmit}
+            >
+
+
+              {/* ==================================
+                  DELIVERY DETAILS
+              ================================== */}
+
+              <h2>
+                📦 Delivery Details
+              </h2>
+
+
+              <div className="checkout-form-grid">
+
+
+                <div className="form-group">
+
+                  <label>
+                    Full Name
+                  </label>
+
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Enter your full name"
+                  />
+
+                </div>
+
+
+                <div className="form-group">
+
+                  <label>
+                    Phone Number
+                  </label>
+
+                  <input
+                    type="text"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="10-digit mobile number"
+                    maxLength="10"
+                  />
+
+                </div>
+
+
+                <div className="form-group full-width">
+
+                  <label>
+                    Address
+                  </label>
+
+                  <textarea
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    placeholder="House no, street, area"
+                    rows="4"
+                  ></textarea>
+
+                </div>
+
+
+                <div className="form-group">
+
+                  <label>
+                    City
+                  </label>
+
+                  <input
+                    type="text"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    placeholder="City"
+                  />
+
+                </div>
+
+
+                <div className="form-group">
+
+                  <label>
+                    State
+                  </label>
+
+                  <input
+                    type="text"
+                    name="state"
+                    value={formData.state}
+                    onChange={handleChange}
+                    placeholder="State"
+                  />
+
+                </div>
+
+
+                <div className="form-group">
+
+                  <label>
+                    Pincode
+                  </label>
+
+                  <input
+                    type="text"
+                    name="pincode"
+                    value={formData.pincode}
+                    onChange={handleChange}
+                    placeholder="6-digit pincode"
+                    maxLength="6"
+                  />
+
+                </div>
+
+              </div>
+
+
+              {/* ==================================
+                  PAYMENT METHOD
+              ================================== */}
+
+              <h2 className="payment-heading">
+                💳 Payment Method
+              </h2>
+
+
+              <div className="payment-options">
+
+
+                <label
+                  className={
+                    paymentMethod === "cod"
+                      ? "payment-option active"
+                      : "payment-option"
+                  }
+                >
+
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="cod"
+                    checked={
+                      paymentMethod === "cod"
+                    }
+                    onChange={(e) =>
+                      setPaymentMethod(
+                        e.target.value
+                      )
+                    }
+                  />
+
+                  <span>
+                    💵 Cash on Delivery
+                  </span>
+
+                </label>
+
+
+                <label
+                  className={
+                    paymentMethod === "online"
+                      ? "payment-option active"
+                      : "payment-option"
+                  }
+                >
+
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="online"
+                    checked={
+                      paymentMethod === "online"
+                    }
+                    onChange={(e) =>
+                      setPaymentMethod(
+                        e.target.value
+                      )
+                    }
+                  />
+
+                  <span>
+                    💳 Online Payment
+                  </span>
+
+                </label>
+
+              </div>
+
+
+              {/* ERROR */}
+
+              {error && (
+
+                <p className="checkout-error">
+                  {error}
+                </p>
+
+              )}
+
+
+              {/* ==================================
+                  PLACE ORDER
+              ================================== */}
+
+              <button
+                type="submit"
+                className="place-order-btn"
+                disabled={loading}
+              >
+
+                {loading
+                  ? "Placing Order..."
+                  : "Place Order →"}
+
+              </button>
+
+
+              {/* BACK TO CART */}
+
+              <Link
+                to="/cart"
+                className="back-cart-btn"
+              >
+                ← Back to Cart
+              </Link>
+
+
+            </form>
+
+          </section>
 
         </div>
 
-      </div>
+      </main>
 
-    </>
+    </div>
 
   );
 
